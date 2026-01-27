@@ -24,6 +24,8 @@ OUTPUT_DIR = "./DSCI_611_project"
 GAMEWEEK_DIR = f"{OUTPUT_DIR}/gameweek_data"
 HISTORICAL_DIR = f"{OUTPUT_DIR}/historical"
 ALL_GAMEWEEKS_FILE = f"{OUTPUT_DIR}/all_gameweeks.csv"
+COMBINED_FILE = f"{OUTPUT_DIR}/combined_all_seasons.csv"
+CURRENT_SEASON = "2025-26"
 
 # FPL API endpoints
 API_BASE = "https://fantasy.premierleague.com/api"
@@ -101,8 +103,8 @@ def process_player_data(data):
 
     return players_clean
 
-def get_player_gameweek_history(player_id):
-
+def get_player_gameweek_history(player_id, players_df):
+    """Fetch week-by-week FPL points for a specific player with metadata."""
     url = f"{API_BASE}/element-summary/{player_id}/"
 
     response = requests.get(url)
@@ -122,17 +124,26 @@ def get_player_gameweek_history(player_id):
 
     history_df = pd.DataFrame(history)
 
-        # Select key columns
+    # Get player metadata from players_df
+    player_info = players_df[players_df['id'] == player_id].iloc[0]
+    history_df['name'] = f"{player_info['first_name']} {player_info['second_name']}"
+    history_df['position'] = player_info['position']
+    history_df['team'] = player_info['team_name']
+
+    # Select key columns
     key_columns = [
         # Player identifiers
-        'element',    
-        # Match identifiers               
-        'round',                    #matchweek
+        'name',
+        'element',
+        'position',
+        'team',
+        # Match identifiers
+        'round',
         'kickoff_time',
         'opponent_team',
-        'was_home',              
-         # Match Outcomes (Cumulative)
-        'minutes',               
+        'was_home',
+        # Match Outcomes
+        'minutes',
         'goals_scored',
         'assists',
         'clean_sheets',
@@ -141,20 +152,21 @@ def get_player_gameweek_history(player_id):
         'red_cards',
         'saves',
         # FPL Points
-        'total_points', 
-        'bps',                   # FPL bonus points
-        # FPL game calculated stats
+        'total_points',
+        'bps',
         'bonus',
-        'defensive_contribution',                 
-        'influence',             
-        'creativity',            
-        'threat',                
-        'ict_index',  
-        # Opta calculated statistics           
-        'expected_goals',        # xG
-        'expected_assists',      # xA
-        'expected_goal_involvements',  # xGI
-        'expected_goals_conceded'     # xGC
+        # FPL calculated stats
+        'influence',
+        'creativity',
+        'threat',
+        'ict_index',
+        # Opta expected statistics
+        'expected_goals',
+        'expected_assists',
+        'expected_goal_involvements',
+        'expected_goals_conceded',
+        # New stats (may be NULL in historical)
+        'defensive_contribution'
     ]
 
     history_df_clean = history_df[key_columns].copy()
@@ -168,7 +180,7 @@ def save_gameweek_csv(players_df, gameweek, output_folder):
     all_gw_data = []
 
     for i, player_id in enumerate(players_df['id']):
-        history_df = get_player_gameweek_history(player_id)
+        history_df = get_player_gameweek_history(player_id, players_df)
 
         if history_df is not None:
             gw_data = history_df[history_df['round'] == gameweek]
@@ -294,6 +306,78 @@ def download_historical_seasons(output_folder, seasons=None):
     print("\nHistorical download complete!")
 
 
+def build_combined_dataset(current_season_file, historical_folder, output_file):
+    """
+    Combine current season with historical data for active players only.
+
+    - Left join: only players active in current season
+    - Stacked long format with season identifier
+    - Aligned to common column set
+    """
+    # Define the columns we want in the final dataset
+    final_columns = [
+        'name', 'element', 'season', 'position', 'team',
+        'round', 'kickoff_time', 'opponent_team', 'was_home',
+        'minutes', 'goals_scored', 'assists', 'clean_sheets',
+        'goals_conceded', 'yellow_cards', 'red_cards', 'saves',
+        'total_points', 'bps', 'bonus',
+        'influence', 'creativity', 'threat', 'ict_index',
+        'expected_goals', 'expected_assists',
+        'expected_goal_involvements', 'expected_goals_conceded',
+        'defensive_contribution'
+    ]
+
+    # Load current season data
+    print("Loading current season data...")
+    current_df = pd.read_csv(current_season_file)
+    current_df['season'] = CURRENT_SEASON
+
+    # Get list of active player names
+    active_players = set(current_df['name'].unique())
+    print(f"Found {len(active_players)} active players in current season")
+
+    # Load and filter historical data
+    historical_files = glob.glob(os.path.join(historical_folder, "*.csv"))
+    all_dfs = [current_df]
+
+    for file in sorted(historical_files):
+        season = os.path.basename(file).replace('.csv', '')
+        print(f"Loading {season}...")
+
+        hist_df = pd.read_csv(file)
+        hist_df['season'] = season
+
+        # Filter to active players only
+        hist_df = hist_df[hist_df['name'].isin(active_players)]
+        print(f"  → {len(hist_df)} rows for active players")
+
+        all_dfs.append(hist_df)
+
+    # Combine all dataframes
+    print("\nCombining all seasons...")
+    combined_df = pd.concat(all_dfs, ignore_index=True)
+
+    # Ensure all final columns exist (fill missing with NaN)
+    for col in final_columns:
+        if col not in combined_df.columns:
+            combined_df[col] = None
+
+    # Select and order columns
+    combined_df = combined_df[final_columns].copy()
+
+    # Sort by player name, season, round
+    combined_df = combined_df.sort_values(['name', 'season', 'round']).reset_index(drop=True)
+
+    # Save
+    combined_df.to_csv(output_file, index=False)
+    print(f"\nSaved combined dataset: {output_file}")
+    print(f"Total rows: {len(combined_df)}")
+    print(f"Unique players: {combined_df['name'].nunique()}")
+    print(f"Seasons: {sorted(combined_df['season'].unique())}")
+
+    return combined_df
+
+
 if __name__ == "__main__":
     # Fetch player data & cumulative performance
     print("\nFetching Player Data")
@@ -318,3 +402,11 @@ if __name__ == "__main__":
     # Download historical seasons from GitHub
     print("\nDownloading historical seasons...")
     download_historical_seasons(output_folder=HISTORICAL_DIR)
+
+    # Build combined dataset (current + historical for active players)
+    print("\nBuilding combined dataset...")
+    combined_df = build_combined_dataset(
+        current_season_file=ALL_GAMEWEEKS_FILE,
+        historical_folder=HISTORICAL_DIR,
+        output_file=COMBINED_FILE
+    )
