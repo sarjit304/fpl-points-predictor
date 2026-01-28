@@ -1,4 +1,4 @@
 [core]
     remote = gcloud
 ['remote "gcloud"']
-    url = gs://DSCI611-FPL-POINTS-PREDICTOR
+    url = gs://fpl-points-predictor
