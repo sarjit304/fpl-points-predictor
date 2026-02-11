@@ -1,7 +1,7 @@
 schema: '2.0'
 stages:
   train-test-split:
-    cmd: python train_test_split.py
+    cmd: uv run python train_test_split.py
     deps:
     - path: data/raw/combined_all_seasons.csv
       hash: md5

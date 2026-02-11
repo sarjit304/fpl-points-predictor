@@ -1,6 +1,6 @@
 stages:
   train-test-split:
-    cmd: python train_test_split.py
+    cmd: uv run python train_test_split.py
     deps:
     - data/raw/combined_all_seasons.csv
     - train_test_split.py
