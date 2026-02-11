@@ -1,13 +1,13 @@
 schema: '2.0'
 stages:
   train-test-split:
-    cmd: uv run python train_test_split.py
+    cmd: uv run python src/train_test_split.py
     deps:
     - path: data/raw/combined_all_seasons.csv
       hash: md5
       md5: b703555b7eb1a48b900653c24a39ba85
       size: 9097035
-    - path: train_test_split.py
+    - path: src/train_test_split.py
       hash: md5
       md5: f200f52e2ebe4099f9c82bc5b68af010
       size: 686
@@ -20,3 +20,19 @@ stages:
       hash: md5
       md5: 429fbb964b25b5bd15e62d37f3b53c42
       size: 6368093
+  clean:
+    cmd: uv run python src/data_cleaning.py
+    deps:
+    - path: data/raw/combined_all_seasons.csv
+      hash: md5
+      md5: b703555b7eb1a48b900653c24a39ba85
+      size: 9097035
+    - path: src/data_cleaning.py
+      hash: md5
+      md5: 32700a02336c0dd2af241ef9d7d121a6
+      size: 1302
+    outs:
+    - path: data/processed/cleaned_all_seasons.csv
+      hash: md5
+      md5: 7934694f4ddd80521b5c6b3b1e655d92
+      size: 9894810

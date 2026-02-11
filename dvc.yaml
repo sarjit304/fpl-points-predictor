@@ -1,9 +1,18 @@
 stages:
-  train-test-split:
-    cmd: uv run python train_test_split.py
+  clean:
+    cmd: uv run python src/data_cleaning.py
     deps:
-    - data/raw/combined_all_seasons.csv
-    - train_test_split.py
+      - src/data_cleaning.py
+      - data/raw/combined_all_seasons.csv
     outs:
-    - data/test.csv
-    - data/train.csv
+      - data/processed/cleaned_all_seasons.csv
+      
+  train-test-split:
+    cmd: uv run python src/train_test_split.py
+    deps:
+      - data/raw/combined_all_seasons.csv
+      - src/train_test_split.py
+    outs:
+      - data/test.csv
+      - data/train.csv
+
