@@ -1,4 +1,5 @@
 import math
+import os
 import pandas as pd
 import numpy as np
 
@@ -30,6 +31,9 @@ df = df.dropna(subset=['element', 'season', 'round'])
 
 # Optional: Reset index
 df = df.reset_index(drop=True)
+
+# Create output directory if needed
+os.makedirs("data/processed", exist_ok=True)
 
 # Save cleaned data
 df.to_csv('data/processed/cleaned_all_seasons.csv', index=False)

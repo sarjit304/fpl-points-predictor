@@ -29,8 +29,8 @@ stages:
       size: 9097035
     - path: src/data_cleaning.py
       hash: md5
-      md5: 32700a02336c0dd2af241ef9d7d121a6
-      size: 1302
+      md5: 9fe18d2c67d3c7560499c659fd61aaa9
+      size: 1394
     outs:
     - path: data/processed/cleaned_all_seasons.csv
       hash: md5
