@@ -13,3 +13,6 @@ wheels/
 *.csv
 gameweek_data/
 historical/
+
+# macOS files
+.DS_Store
