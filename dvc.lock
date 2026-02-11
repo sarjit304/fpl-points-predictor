@@ -1,0 +1,22 @@
+schema: '2.0'
+stages:
+  train-test-split:
+    cmd: python train_test_split.py
+    deps:
+    - path: data/raw/combined_all_seasons.csv
+      hash: md5
+      md5: b703555b7eb1a48b900653c24a39ba85
+      size: 9097035
+    - path: train_test_split.py
+      hash: md5
+      md5: f200f52e2ebe4099f9c82bc5b68af010
+      size: 686
+    outs:
+    - path: data/test.csv
+      hash: md5
+      md5: d1925259fba3df72977f402fb310fbfa
+      size: 2729271
+    - path: data/train.csv
+      hash: md5
+      md5: 429fbb964b25b5bd15e62d37f3b53c42
+      size: 6368093
