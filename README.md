@@ -80,15 +80,27 @@ This will:
 
 ```
 fpl-points-predictor/
+│
 ├── data/
-│   └── raw/
-│       └── combined_all_seasons.csv.dvc  # DVC-tracked dataset
-├── fpl_data_acquisition.py               # Data collection pipeline
-├── main.py                               # Entry point
-├── Data.md                               # Data documentation
-├── pyproject.toml                        # Project dependencies
-├── uv.lock                               # Locked dependencies
-└── .dvc/                                 # DVC configuration
+│   ├── raw/
+│   ├── processed/
+│
+├── notebooks/
+│   ├── EDA.ipynb
+│   ├── EDA.py
+│
+├── src/
+│   ├── data_acquisition.py
+│   ├── data_cleaning.py
+│   ├── train_test_split.py
+│   ├── train.py
+│
+├── dvc.yaml
+├── dvc.lock
+├── pyproject.toml
+├── uv.lock
+├── README.md
+
 ```
 
 ## License
