@@ -3,10 +3,10 @@ stages:
   train-test-split:
     cmd: uv run python src/train_test_split.py
     deps:
-    - path: data/raw/combined_all_seasons.csv
+    - path: data/processed/cleaned_all_seasons.csv
       hash: md5
-      md5: b703555b7eb1a48b900653c24a39ba85
-      size: 9097035
+      md5: 7934694f4ddd80521b5c6b3b1e655d92
+      size: 9894810
     - path: src/train_test_split.py
       hash: md5
       md5: f200f52e2ebe4099f9c82bc5b68af010
