@@ -1,4 +1,13 @@
 stages:
+  combine-data:
+    cmd: uv run python src/combine_data.py
+    deps:
+      - src/combine_data.py
+      - DSCI_611_project/all_gameweeks.csv
+      - DSCI_611_project/historical/
+    outs:
+      - data/raw/combined_all_seasons.csv
+      
   clean:
     cmd: uv run python src/data_cleaning.py
     deps:

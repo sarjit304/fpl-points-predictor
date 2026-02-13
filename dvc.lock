@@ -5,8 +5,8 @@ stages:
     deps:
     - path: data/processed/cleaned_all_seasons.csv
       hash: md5
-      md5: 7934694f4ddd80521b5c6b3b1e655d92
-      size: 9894810
+      md5: cb5fae2936ed8824f79f4f4f467b3334
+      size: 10048348
     - path: src/train_test_split.py
       hash: md5
       md5: f200f52e2ebe4099f9c82bc5b68af010
@@ -14,19 +14,19 @@ stages:
     outs:
     - path: data/test.csv
       hash: md5
-      md5: d1925259fba3df72977f402fb310fbfa
-      size: 2729271
+      md5: b8f60c0307366b1e8acb6ead3e9f795e
+      size: 2770802
     - path: data/train.csv
       hash: md5
-      md5: 429fbb964b25b5bd15e62d37f3b53c42
-      size: 6368093
+      md5: 55c0978f5596cbbdb4bd7a4aca40be6a
+      size: 6458126
   clean:
     cmd: uv run python src/data_cleaning.py
     deps:
     - path: data/raw/combined_all_seasons.csv
       hash: md5
-      md5: b703555b7eb1a48b900653c24a39ba85
-      size: 9097035
+      md5: 7b2b2d1cd23ba0e6a16bce4d3dac50cd
+      size: 9228599
     - path: src/data_cleaning.py
       hash: md5
       md5: 9fe18d2c67d3c7560499c659fd61aaa9
@@ -34,5 +34,26 @@ stages:
     outs:
     - path: data/processed/cleaned_all_seasons.csv
       hash: md5
-      md5: 7934694f4ddd80521b5c6b3b1e655d92
-      size: 9894810
+      md5: cb5fae2936ed8824f79f4f4f467b3334
+      size: 10048348
+  combine-data:
+    cmd: uv run python src/combine_data.py
+    deps:
+    - path: DSCI_611_project/all_gameweeks.csv
+      hash: md5
+      md5: 04591b9cfe2c23a1cd721c53d74bfc05
+      size: 2169310
+    - path: DSCI_611_project/historical/
+      hash: md5
+      md5: 5c3865447df5bea0fe5fb1b1f91290a9.dir
+      size: 22073478
+      nfiles: 5
+    - path: src/combine_data.py
+      hash: md5
+      md5: 2c22c2fb38b67164911b4290f3ee1e84
+      size: 2972
+    outs:
+    - path: data/raw/combined_all_seasons.csv
+      hash: md5
+      md5: 7b2b2d1cd23ba0e6a16bce4d3dac50cd
+      size: 9228599
