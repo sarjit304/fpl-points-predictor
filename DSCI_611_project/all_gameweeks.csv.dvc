@@ -1,0 +1,5 @@
+outs:
+- md5: 04591b9cfe2c23a1cd721c53d74bfc05
+  size: 2169310
+  hash: md5
+  path: all_gameweeks.csv
