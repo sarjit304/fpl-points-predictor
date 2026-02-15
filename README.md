@@ -146,8 +146,6 @@ We made the following improvements to modularize the workflow and integrate it c
 
 To improve Git tracking, we used **Ruff** to convert the notebook into a `.py` file, making diffs cleaner and easier to review.
 
----
-
 ## Recommended File Review Order
 
 To understand the workflow:
@@ -160,6 +158,7 @@ To understand the workflow:
 
 This update ensures a modular, reproducible, and DVC-managed ML data pipeline.
 
+---
 
 ## License
 
