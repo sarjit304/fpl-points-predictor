@@ -102,6 +102,64 @@ fpl-points-predictor/
 ├── README.md
 
 ```
+---
+
+## Deliverable 2 - Exploration
+
+We made the following improvements to modularize the workflow and integrate it cleanly with DVC:
+
+### 1. Project Restructuring
+- Moved all Python scripts into a dedicated `src/` directory.
+- This improves clarity and readability.
+
+
+### 2. Data Combination Stage  
+**File:** `src/combine_data.py`
+
+- Combines multiple raw datasets into a single unified dataset.
+- Originally part of data acquisition, but separated into its own script.
+- Added as a dedicated stage in the DVC pipeline.
+
+
+### 3. Data Cleaning Stage  
+**File:** `src/clean_data.py`
+
+- Takes the combined dataset as input.
+- Performs preprocessing and cleaning for downstream tasks.
+- Outputs a cleaned dataset used for splitting and analysis.
+
+
+### 4. Train–Test Split Stage  
+**File:** `src/train_test_split.py`
+
+- Splits cleaned data into:
+  - 70% Training
+  - 30% Testing
+- Outputs separate CSV files.
+- Registered as a DVC stage for reproducibility.
+
+
+### 5. Exploratory Data Analysis (EDA)  
+**File:** `eda.ipynb & eda.py`
+
+- Used for understanding distributions, trends, and feature behavior.
+
+To improve Git tracking, we used **Ruff** to convert the notebook into a `.py` file, making diffs cleaner and easier to review.
+
+---
+
+## Recommended File Review Order
+
+To understand the workflow:
+
+1. `dvc.yaml`
+2. `src/combine_data.py`
+3. `src/clean_data.py`
+4. `src/train_test_split.py`
+5. `notebooks/eda.ipynb` (or converted `.py` version)
+
+This update ensures a modular, reproducible, and DVC-managed ML data pipeline.
+
 
 ## License
 
