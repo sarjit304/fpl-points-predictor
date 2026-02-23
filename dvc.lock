@@ -9,8 +9,8 @@ stages:
       size: 14863283
     - path: src/train_test_split.py
       hash: md5
-      md5: 8ba52ab16dd1a9173dbf6415695f38c2
-      size: 5845
+      md5: 741fc571559b632e0962e065aee3629b
+      size: 5671
     outs:
     - path: data/test.csv
       hash: md5
