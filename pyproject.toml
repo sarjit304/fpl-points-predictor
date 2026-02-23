@@ -6,12 +6,15 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "dvc-gs>=3.0.2",
+    "ipykernel>=6.31.0",
+    "joblib>=1.5.3",
     "keyrings-google-artifactregistry-auth>=1.1.2",
     "matplotlib>=3.9.4",
     "pandas>=2.3.3",
     "requests>=2.32.5",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
+    "xgboost>=2.1.4",
 ]
 
 [dependency-groups]

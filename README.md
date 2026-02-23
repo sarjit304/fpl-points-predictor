@@ -23,8 +23,8 @@ FPL assigns players points based on real-life actions in games, such as scoring 
 - Historical player performance (FPL points per gameweek)
 - Underlying real-life actions (goals scored, assists, clean sheets, etc.)
 - Advanced metrics from Opta (xG, xA, xGI) - measures of chance quality
-- Match context (home/away, opponent)
-- Time-series features (moving averages to capture performance trends)
+- Time-series features (lag and moving averages to capture performance trends)
+- Planned: match context (fixture difficulty, home/away) — not yet included
 
 ### Success Metrics
 
@@ -48,6 +48,8 @@ See [Data.md](Data.md) for comprehensive data documentation including schema, co
 ### Prerequisites
 - Python 3.9+
 - [uv](https://github.com/astral-sh/uv) package manager
+- [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (for DVC remote access)
+- **Mac only:** `brew install libomp` (required for XGBoost)
 
 ### Installation
 
@@ -58,23 +60,60 @@ cd fpl-points-predictor
 
 # Install dependencies
 uv sync
-
-# Pull DVC-tracked data files
-dvc pull
 ```
 
-### Running the Data Pipeline
+### Google Cloud Authentication
+
+DVC-tracked data and models are stored in a GCS bucket (`gs://fpl-points-predictor`). You need to authenticate before running `dvc pull`:
 
 ```bash
-# Fetch current season data and build combined dataset
+gcloud auth application-default login
+```
+
+You will also need to be granted access to the bucket — contact a team member if you haven't been added yet.
+
+### Fetching the Latest Data
+
+This step pulls the most recent gameweek from the FPL API and updates the raw data. It feeds into the DVC pipeline but runs outside of it:
+
+```bash
 python fpl_data_acquisition.py
 ```
 
 This will:
-1. Fetch player data from FPL API
+1. Fetch player data from the FPL API
 2. Download any missing gameweeks (incremental updates)
 3. Download historical season data (if not cached)
-4. Generate `combined_all_seasons.csv` with all seasons merged
+4. Update `DSCI_611_project/all_gameweeks.csv`
+
+### Running the Full Pipeline
+
+Pull the raw input data from GCS, then let DVC reproduce all pipeline outputs (cleaned data, features, models, metrics) from scratch:
+
+```bash
+# Pull raw input data from GCS
+dvc pull
+
+# Reproduce all pipeline stages
+dvc repro
+
+# View metrics
+dvc metrics show
+```
+
+Only the raw input data (`DSCI_611_project/all_gameweeks.csv` and historical seasons) is stored in GCS. All other files — cleaned data, features, train/test splits, models, and metrics — are generated locally by `dvc repro`. This ensures the pipeline is fully reproducible from source.
+
+### Publishing Changes
+
+After making changes, push source code to GitHub and raw data to GCS:
+
+```bash
+# Push source code, dvc.yaml, dvc.lock, and other tracked files
+git push
+
+# Push only the raw input data to GCS (pipeline outputs are reproduced, not stored)
+dvc push DSCI_611_project/all_gameweeks.csv.dvc
+```
 
 ## Project Structure
 
@@ -83,24 +122,40 @@ fpl-points-predictor/
 │
 ├── data/
 │   ├── raw/
+│   │   └── combined_all_seasons.csv      # DVC-tracked
 │   ├── processed/
+│   │   ├── cleaned_all_seasons.csv       # DVC-tracked
+│   │   └── features_all_seasons.csv      # DVC-tracked
+│   ├── train.csv                         # DVC-tracked
+│   ├── test.csv                          # DVC-tracked
+│   └── predictions.csv                  # DVC-tracked
+│
+├── models/                              # DVC-tracked
+│   ├── ridge_model.joblib
+│   ├── rf_model.joblib
+│   └── gb_model.joblib
+│
+├── metrics/
+│   └── results.json                     # DVC-tracked metric
 │
 ├── notebooks/
 │   ├── EDA.ipynb
 │   ├── EDA.py
+│   └── evaluation.ipynb
 │
 ├── src/
-│   ├── data_acquisition.py
-│   ├── data_cleaning.py
+│   ├── combine_data.py
+│   ├── Data_cleaning.py
+│   ├── feature_engineering.py
 │   ├── train_test_split.py
 │   ├── train.py
+│   └── evaluate.py
 │
 ├── dvc.yaml
 ├── dvc.lock
 ├── pyproject.toml
 ├── uv.lock
-├── README.md
-
+└── README.md
 ```
 ---
 
@@ -148,15 +203,103 @@ To improve Git tracking, we used **Ruff** to convert the notebook into a `.py` f
 
 ## Recommended File Review Order
 
-To understand the workflow:
+To understand the full workflow, read files in pipeline order:
 
-1. `dvc.yaml`
-2. `src/combine_data.py`
-3. `src/clean_data.py`
-4. `src/train_test_split.py`
-5. `notebooks/eda.ipynb` (or converted `.py` version)
+1. `dvc.yaml` — pipeline definition (start here to see the big picture)
+2. `src/combine_data.py` — merges raw data sources
+3. `src/Data_cleaning.py` — cleans and standardises the combined dataset
+4. `src/feature_engineering.py` — creates lag and moving average features
+5. `src/train_test_split.py` — temporal train/test split with recency weights
+6. `src/train.py` — trains Ridge, Random Forest, and XGBoost models
+7. `src/evaluate.py` — computes and saves evaluation metrics
+8. `notebooks/evaluation.ipynb` — analysis, visualisations, and conclusions
+9. `notebooks/EDA.ipynb` (or `.py`) — exploratory data analysis
 
 This update ensures a modular, reproducible, and DVC-managed ML data pipeline.
+
+---
+
+## Deliverable 3 - Model Training & Evaluation
+
+### New Pipeline Stages
+
+We extended the DVC pipeline with model training and evaluation:
+
+#### 1. Feature Engineering Stage
+**File:** `src/feature_engineering.py`
+
+Creates predictive features from cleaned data:
+- **Lag features**: Previous gameweek values (`total_points_lag1`, `minutes_lag1`, etc.)
+- **Rolling averages**: 5-game moving averages (`total_points_ma5`, `ict_index_ma5`, etc.)
+- All features use `shift()` to prevent data leakage
+
+#### 2. Train/Test Split Stage
+**File:** `src/train_test_split.py`
+
+Temporal split to simulate real-world prediction:
+- **Train**: Historical seasons (2020-25) + GW1-5 of 2025-26
+- **Test**: GW6+ of 2025-26 season
+- Recency weighting via exponential decay (recent games weighted higher)
+
+#### 3. Model Training Stage
+**File:** `src/train.py`
+
+Trains three models and evaluates on test set:
+- **Ridge Regression**: Linear baseline with regularization
+- **Random Forest**: Ensemble of decision trees (best performer)
+- **Gradient Boosting**: Sequential ensemble method
+
+Outputs:
+- Trained models serialised with `joblib` and saved to `models/` (`ridge_model.joblib`, `rf_model.joblib`, `gb_model.joblib`) — DVC-tracked, not stored in git
+- Predictions saved to `data/predictions.csv`
+- Metrics saved to `metrics/results.json` (tracked by git via `cache: false`)
+
+### Model Performance
+
+| Model | MAE | RMSE | R² |
+|-------|-----|------|-----|
+| Random Forest | 1.03 | 1.98 | 0.31 |
+| Gradient Boosting | 1.05 | 2.02 | 0.28 |
+| Ridge Regression | 1.08 | 1.98 | 0.31 |
+
+### Evaluation Notebook
+
+**File:** `notebooks/evaluation.ipynb`
+
+Contains:
+- Evaluation setup explanation (temporal split rationale)
+- Metrics explanation (why MAE, RMSE, R²)
+- Visualizations (model comparison, residuals, feature importance)
+- Conclusions and observations
+
+### Running the Full Pipeline
+
+```bash
+# Pull data and run entire pipeline
+dvc pull
+dvc repro
+
+# View metrics
+dvc metrics show
+
+# Force re-run everything
+dvc repro -f
+```
+
+### Key Files
+
+| File | Description |
+|------|-------------|
+| `src/feature_engineering.py` | Creates lag/rolling features |
+| `src/train_test_split.py` | Temporal train/test split |
+| `src/train.py` | Model training and evaluation |
+| `src/evaluate.py` | Computes and saves metrics |
+| `notebooks/evaluation.ipynb` | Evaluation notebook with visualizations |
+| `models/ridge_model.joblib` | Serialised Ridge Regression model (DVC-tracked) |
+| `models/rf_model.joblib` | Serialised Random Forest model (DVC-tracked) |
+| `models/gb_model.joblib` | Serialised Gradient Boosting model (DVC-tracked) |
+| `metrics/results.json` | MAE, RMSE, R² for all models (tracked by git) |
+| `data/predictions.csv` | Player predictions ranked by expected points |
 
 ---
 

@@ -3,46 +3,46 @@ stages:
   train-test-split:
     cmd: uv run python src/train_test_split.py
     deps:
-    - path: data/processed/cleaned_all_seasons.csv
+    - path: data/processed/features_all_seasons.csv
       hash: md5
-      md5: cb5fae2936ed8824f79f4f4f467b3334
-      size: 10048348
+      md5: 6e704f1a2b25e54870d55bf99046a2f9
+      size: 14863283
     - path: src/train_test_split.py
       hash: md5
-      md5: f200f52e2ebe4099f9c82bc5b68af010
-      size: 686
+      md5: 8ba52ab16dd1a9173dbf6415695f38c2
+      size: 5845
     outs:
     - path: data/test.csv
       hash: md5
-      md5: b8f60c0307366b1e8acb6ead3e9f795e
-      size: 2770802
+      md5: 7301fbeb517ac4c8b3cec0defd0af4a0
+      size: 3290604
     - path: data/train.csv
       hash: md5
-      md5: 55c0978f5596cbbdb4bd7a4aca40be6a
-      size: 6458126
+      md5: a73f0400396335b4a64fa78b280ceb2f
+      size: 12546992
   clean:
-    cmd: uv run python src/data_cleaning.py
+    cmd: uv run python src/Data_cleaning.py
     deps:
     - path: data/raw/combined_all_seasons.csv
       hash: md5
-      md5: 7b2b2d1cd23ba0e6a16bce4d3dac50cd
-      size: 9228599
-    - path: src/data_cleaning.py
+      md5: 9c75ce5935e768dab05cd84337783b9c
+      size: 9523437
+    - path: src/Data_cleaning.py
       hash: md5
       md5: 9fe18d2c67d3c7560499c659fd61aaa9
       size: 1394
     outs:
     - path: data/processed/cleaned_all_seasons.csv
       hash: md5
-      md5: cb5fae2936ed8824f79f4f4f467b3334
-      size: 10048348
+      md5: ca5b723668222eba94d59821e42d8e5d
+      size: 10342130
   combine-data:
     cmd: uv run python src/combine_data.py
     deps:
     - path: DSCI_611_project/all_gameweeks.csv
       hash: md5
-      md5: 04591b9cfe2c23a1cd721c53d74bfc05
-      size: 2169310
+      md5: 08faede4accfa738cab70f299c34b09d
+      size: 2455188
     - path: DSCI_611_project/historical/
       hash: md5
       md5: 5c3865447df5bea0fe5fb1b1f91290a9.dir
@@ -55,5 +55,73 @@ stages:
     outs:
     - path: data/raw/combined_all_seasons.csv
       hash: md5
-      md5: 7b2b2d1cd23ba0e6a16bce4d3dac50cd
-      size: 9228599
+      md5: 9c75ce5935e768dab05cd84337783b9c
+      size: 9523437
+  feature-engineering:
+    cmd: uv run python src/feature_engineering.py
+    deps:
+    - path: data/processed/cleaned_all_seasons.csv
+      hash: md5
+      md5: ca5b723668222eba94d59821e42d8e5d
+      size: 10342130
+    - path: src/feature_engineering.py
+      hash: md5
+      md5: fb4369d9133c93bb6e64267528e1f82a
+      size: 5017
+    outs:
+    - path: data/processed/features_all_seasons.csv
+      hash: md5
+      md5: 6e704f1a2b25e54870d55bf99046a2f9
+      size: 14863283
+  train:
+    cmd: uv run python src/train.py
+    deps:
+    - path: data/test.csv
+      hash: md5
+      md5: 7301fbeb517ac4c8b3cec0defd0af4a0
+      size: 3290604
+    - path: data/train.csv
+      hash: md5
+      md5: a73f0400396335b4a64fa78b280ceb2f
+      size: 12546992
+    - path: src/train.py
+      hash: md5
+      md5: e494d14a210e614552dc587c37bc20eb
+      size: 2796
+    outs:
+    - path: data/predictions.csv
+      hash: md5
+      md5: b3b427b009db35f0f6ab756cc9212783
+      size: 1401777
+    - path: models/gb_model.joblib
+      hash: md5
+      md5: b4249de9b41f846312385a85f327544b
+      size: 381612
+    - path: models/rf_model.joblib
+      hash: md5
+      md5: 01b3b26f8275189b25b5f2ce0cb952c4
+      size: 5339041
+    - path: models/ridge_model.joblib
+      hash: md5
+      md5: 666edd7f94739e1c4120ec97cdda5604
+      size: 1009
+  evaluate:
+    cmd: uv run python src/evaluate.py
+    deps:
+    - path: data/predictions.csv
+      hash: md5
+      md5: b3b427b009db35f0f6ab756cc9212783
+      size: 1401777
+    - path: data/test.csv
+      hash: md5
+      md5: 7301fbeb517ac4c8b3cec0defd0af4a0
+      size: 3290604
+    - path: src/evaluate.py
+      hash: md5
+      md5: 46b99c618918b1a070c33cca583a68c4
+      size: 1529
+    outs:
+    - path: metrics/results.json
+      hash: md5
+      md5: 66531d6c9a0019ad3b30f0366eae3369
+      size: 413
