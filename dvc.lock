@@ -14,12 +14,12 @@ stages:
     outs:
     - path: data/test.csv
       hash: md5
-      md5: 7301fbeb517ac4c8b3cec0defd0af4a0
-      size: 3290604
+      md5: 2f7f6a2ede6a64302024cb1689259bd2
+      size: 3291545
     - path: data/train.csv
       hash: md5
-      md5: a73f0400396335b4a64fa78b280ceb2f
-      size: 12546992
+      md5: 138a8599993eb818c4576d054162aba4
+      size: 12551253
   clean:
     cmd: uv run python src/Data_cleaning.py
     deps:
@@ -78,12 +78,12 @@ stages:
     deps:
     - path: data/test.csv
       hash: md5
-      md5: 7301fbeb517ac4c8b3cec0defd0af4a0
-      size: 3290604
+      md5: 2f7f6a2ede6a64302024cb1689259bd2
+      size: 3291545
     - path: data/train.csv
       hash: md5
-      md5: a73f0400396335b4a64fa78b280ceb2f
-      size: 12546992
+      md5: 138a8599993eb818c4576d054162aba4
+      size: 12551253
     - path: src/train.py
       hash: md5
       md5: e494d14a210e614552dc587c37bc20eb
@@ -91,31 +91,31 @@ stages:
     outs:
     - path: data/predictions.csv
       hash: md5
-      md5: b3b427b009db35f0f6ab756cc9212783
-      size: 1401777
+      md5: 8f65e15877ea52604769d90479379d6b
+      size: 1401700
     - path: models/gb_model.joblib
       hash: md5
-      md5: b4249de9b41f846312385a85f327544b
+      md5: 829063dc5d1fb0e9310f6fe9201f31ea
       size: 381612
     - path: models/rf_model.joblib
       hash: md5
-      md5: 01b3b26f8275189b25b5f2ce0cb952c4
-      size: 5339041
+      md5: be60e79f02268ef8733c242a62429fc5
+      size: 5338897
     - path: models/ridge_model.joblib
       hash: md5
-      md5: 666edd7f94739e1c4120ec97cdda5604
+      md5: f1bce10983dc15d2dc0ecf9977b44642
       size: 1009
   evaluate:
     cmd: uv run python src/evaluate.py
     deps:
     - path: data/predictions.csv
       hash: md5
-      md5: b3b427b009db35f0f6ab756cc9212783
-      size: 1401777
+      md5: 8f65e15877ea52604769d90479379d6b
+      size: 1401700
     - path: data/test.csv
       hash: md5
-      md5: 7301fbeb517ac4c8b3cec0defd0af4a0
-      size: 3290604
+      md5: 2f7f6a2ede6a64302024cb1689259bd2
+      size: 3291545
     - path: src/evaluate.py
       hash: md5
       md5: 46b99c618918b1a070c33cca583a68c4
@@ -123,5 +123,5 @@ stages:
     outs:
     - path: metrics/results.json
       hash: md5
-      md5: 66531d6c9a0019ad3b30f0366eae3369
+      md5: 35f3b6d0d743d29603b6a3f4a79d1b32
       size: 413
