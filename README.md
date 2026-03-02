@@ -46,7 +46,7 @@ See [Data.md](Data.md) for comprehensive data documentation including schema, co
 ## Project Setup
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.12+
 - [uv](https://github.com/astral-sh/uv) package manager
 - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (for DVC remote access)
 - **Mac only:** `brew install libomp` (required for XGBoost)
