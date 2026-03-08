@@ -128,15 +128,25 @@ fpl-points-predictor/
 │   │   └── features_all_seasons.csv      # DVC-tracked
 │   ├── train.csv                         # DVC-tracked
 │   ├── test.csv                          # DVC-tracked
-│   └── predictions.csv                  # DVC-tracked
+│   ├── predictions_baseline.csv          # DVC-tracked (baseline model predictions)
+│   └── predictions_tuned.csv             # DVC-tracked (tuned model predictions)
 │
-├── models/                              # DVC-tracked
-│   ├── ridge_model.joblib
-│   ├── rf_model.joblib
-│   └── gb_model.joblib
+├── models/                               # DVC-tracked
+│   ├── tuned_params.json                 # Optimized hyperparameters from tuning
+│   ├── baseline/                         # Baseline models
+│   │   ├── ridge_model.joblib
+│   │   ├── rf_model.joblib
+│   │   └── gb_model.joblib
+│   └── tuned/                            # Tuned models
+│       ├── ridge_model.joblib
+│       ├── rf_model.joblib
+│       └── gb_model.joblib
 │
 ├── metrics/
-│   └── results.json                     # DVC-tracked metric
+│   ├── results.json                      # DVC-tracked metric (legacy)
+│   ├── baseline_metrics.json             # Baseline model metrics
+│   ├── tuned_metrics.json                # Tuned model metrics
+│   └── comparison_metrics.json           # Baseline vs tuned comparison
 │
 ├── notebooks/
 │   ├── EDA.ipynb
@@ -148,8 +158,9 @@ fpl-points-predictor/
 │   ├── Data_cleaning.py
 │   ├── feature_engineering.py
 │   ├── train_test_split.py
-│   ├── train.py
-│   └── evaluate.py
+│   ├── tune.py                           # NEW: Hyperparameter tuning
+│   ├── train.py                          # UPDATED: Supports baseline/tuned modes
+│   └── evaluate.py                       # UPDATED: Compares baseline vs tuned
 │
 ├── dvc.yaml
 ├── dvc.lock
@@ -300,6 +311,128 @@ dvc repro -f
 | `models/gb_model.joblib` | Serialised Gradient Boosting model (DVC-tracked) |
 | `metrics/results.json` | MAE, RMSE, R² for all models (tracked by git) |
 | `data/predictions.csv` | Player predictions ranked by expected points |
+
+---
+
+## Deliverable 4 - Hyperparameter Tuning
+
+### Overview
+
+We implemented hyperparameter tuning to improve model performance, comparing tuned models against our original baseline configurations.
+
+### Experiments Conducted
+
+#### Experiment 1: Decay Rate Tuning
+Tests different decay rates for sample weights to find optimal recency weighting.
+
+- **Rationale**: Player form changes over time. Recent games may be more predictive than games from months ago.
+- **Formula**: `weight = exp(-decay_rate × gameweeks_ago)`
+- **Tested values**: 0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30
+
+#### Experiment 2: Log-Transformed Target
+Tests whether predicting `log(total_points + 1)` instead of raw points improves performance.
+
+- **Rationale**: FPL points are right-skewed (most players score 2-4 points, some score 15+). Log transform compresses the range, potentially reducing outlier influence.
+- **Implementation**: Uses `log1p` (natural log of 1+x) which handles zeros gracefully.
+
+#### Experiment 3: Model Hyperparameter Grid Search
+Uses GridSearchCV with TimeSeriesSplit cross-validation to find optimal hyperparameters.
+
+**Ridge Regression:**
+- `alpha`: [0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0]
+
+**Random Forest:**
+- `n_estimators`: [50, 100, 200]
+- `max_depth`: [5, 10, 15, 20]
+- `min_samples_split`: [5, 10, 20]
+- `min_samples_leaf`: [3, 5, 10]
+
+**XGBoost:**
+- `n_estimators`: [50, 100, 200]
+- `max_depth`: [3, 6, 9]
+- `learning_rate`: [0.01, 0.05, 0.1, 0.2]
+- `subsample`: [0.7, 0.8, 0.9]
+- `colsample_bytree`: [0.7, 0.8, 0.9]
+
+### Evaluation Metric: MAE
+
+We use **Mean Absolute Error (MAE)** as our primary metric because:
+- **Interpretable**: MAE of 1.0 means predictions are off by 1 FPL point on average
+- **Robust to outliers**: Unlike RMSE, doesn't over-penalize big hauls (15+ points)
+- **Matches our goal**: We want accurate point predictions for team selection
+
+### Cross-Validation: TimeSeriesSplit
+
+We use **TimeSeriesSplit** (5 folds) because:
+- Respects temporal ordering of FPL gameweek data
+- Prevents data leakage from future gameweeks
+- More realistic evaluation than random splits for time-series prediction
+
+### New Pipeline Stages
+
+#### 1. Tuning Stage
+**File:** `src/tune.py`
+
+Runs all three experiments and saves optimized parameters:
+- Tests decay rates for sample weights
+- Tests log-transformed target prediction
+- Performs grid search for model hyperparameters
+- Outputs: `models/tuned_params.json`
+
+#### 2. Updated Training Stage
+**File:** `src/train.py`
+
+Now supports two modes via `--mode` argument:
+- `baseline`: Trains with original hardcoded parameters
+- `tuned`: Trains with optimized parameters from `tuned_params.json`
+- `both`: Trains both configurations (default)
+
+Outputs are saved to separate directories:
+- Baseline models: `models/baseline/`
+- Tuned models: `models/tuned/`
+- Baseline predictions: `data/predictions_baseline.csv`
+- Tuned predictions: `data/predictions_tuned.csv`
+
+#### 3. Updated Evaluation Stage
+**File:** `src/evaluate.py`
+
+Evaluates both baseline and tuned models and generates comparison metrics:
+- `metrics/baseline_metrics.json`: Metrics for baseline models
+- `metrics/tuned_metrics.json`: Metrics for tuned models
+- `metrics/comparison_metrics.json`: Side-by-side comparison with improvement percentages
+
+### Running the Pipeline
+
+```bash
+# Pull data and run entire pipeline including tuning
+dvc pull
+dvc repro
+
+# View all metrics
+dvc metrics show
+
+# View comparison between baseline and tuned
+cat metrics/comparison_metrics.json
+
+# Force re-run everything
+dvc repro -f
+```
+
+### Key Files
+
+| File | Description |
+|------|-------------|
+| `src/tune.py` | Hyperparameter tuning script |
+| `src/train.py` | Updated training script (baseline + tuned modes) |
+| `src/evaluate.py` | Updated evaluation with comparison |
+| `models/tuned_params.json` | Optimized hyperparameters |
+| `models/baseline/` | Baseline models directory |
+| `models/tuned/` | Tuned models directory |
+| `data/predictions_baseline.csv` | Predictions from baseline models |
+| `data/predictions_tuned.csv` | Predictions from tuned models |
+| `metrics/baseline_metrics.json` | Baseline model metrics |
+| `metrics/tuned_metrics.json` | Tuned model metrics |
+| `metrics/comparison_metrics.json` | Baseline vs tuned comparison |
 
 ---
 
