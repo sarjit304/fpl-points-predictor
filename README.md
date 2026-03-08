@@ -128,12 +128,17 @@ fpl-points-predictor/
 │   │   └── features_all_seasons.csv      # DVC-tracked
 │   ├── train.csv                         # DVC-tracked
 │   ├── test.csv                          # DVC-tracked
-│   └── predictions.csv                  # DVC-tracked
+│   ├── predictions.csv                   # Baseline predictions (DVC-tracked)
+│   └── predictions_tuned.csv             # Tuned predictions (DVC-tracked)
 │
 ├── models/                              # DVC-tracked
 │   ├── ridge_model.joblib
 │   ├── rf_model.joblib
-│   └── gb_model.joblib
+│   ├── gb_model.joblib
+│   ├── ridge_model_tuned.joblib
+│   ├── rf_model_tuned.joblib
+│   ├── gb_model_tuned.joblib
+│   └── tuned_params.json
 │
 ├── metrics/
 │   └── results.json                     # DVC-tracked metric
@@ -210,10 +215,11 @@ To understand the full workflow, read files in pipeline order:
 3. `src/Data_cleaning.py` — cleans and standardises the combined dataset
 4. `src/feature_engineering.py` — creates lag and moving average features
 5. `src/train_test_split.py` — temporal train/test split with recency weights
-6. `src/train.py` — trains Ridge, Random Forest, and XGBoost models
-7. `src/evaluate.py` — computes and saves evaluation metrics
-8. `notebooks/evaluation.ipynb` — analysis, visualisations, and conclusions
-9. `notebooks/EDA.ipynb` (or `.py`) — exploratory data analysis
+6. `src/tune.py` — performs CV-based hyperparameter tuning and saves best params
+7. `src/train.py` — trains baseline and tuned Ridge, Random Forest, and XGBoost models
+8. `src/evaluate.py` — computes and saves baseline vs tuned evaluation metrics
+9. `notebooks/evaluation.ipynb` — analysis, visualisations, and conclusions
+10. `notebooks/EDA.ipynb` (or `.py`) — exploratory data analysis
 
 This update ensures a modular, reproducible, and DVC-managed ML data pipeline.
 
@@ -300,6 +306,43 @@ dvc repro -f
 | `models/gb_model.joblib` | Serialised Gradient Boosting model (DVC-tracked) |
 | `metrics/results.json` | MAE, RMSE, R² for all models (tracked by git) |
 | `data/predictions.csv` | Player predictions ranked by expected points |
+
+---
+## Deliverable 4 - Tuning & Experiments
+
+### What was added
+
+- Added `src/tune.py` to run hyperparameter tuning with `RandomizedSearchCV` + `TimeSeriesSplit` and optimize for CV MAE.
+- Added DVC stage `tune` that writes tuned parameters to `models/tuned_params.json`.
+- Updated `src/train.py` with `--mode baseline|tuned` and loading from `models/tuned_params.json`.
+- Added DVC stage `train-tuned` to save tuned artifacts separately:
+  - `models/ridge_model_tuned.joblib`
+  - `models/rf_model_tuned.joblib`
+  - `models/gb_model_tuned.joblib`
+  - `data/predictions_tuned.csv`
+- Updated `src/evaluate.py` to report both baseline and tuned metrics in one file (`metrics/results.json`) and include deltas (`tuned_minus_baseline`).
+- Updated `notebooks/evaluation.ipynb` to load and compare baseline vs tuned outputs.
+
+### Tuning results summary (test set)
+
+| Model | Baseline MAE | Tuned MAE | MAE Delta (Tuned - Baseline) |
+|------|------|------|------|
+| Ridge Regression | 1.0772 | 1.0772 | 0.0000 |
+| Random Forest | 1.0326 | 1.0181 | -0.0145 |
+| XGBoost | 1.0566 | 1.0459 | -0.0107 |
+
+Interpretation:
+- Tuning improved MAE for both Random Forest and XGBoost.
+- Tuned XGBoost also improved RMSE (2.0037 -> 1.9858) and R² (0.2894 -> 0.3020).
+- Ridge was kept as the linear baseline and therefore unchanged.
+
+### Reproducing Deliverable 4
+
+```bash
+dvc pull
+dvc repro -f
+dvc metrics show
+```
 
 ---
 

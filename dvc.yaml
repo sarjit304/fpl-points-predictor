@@ -37,6 +37,7 @@ stages:
     cmd: uv run python src/train.py
     deps:
       - src/train.py
+      - params.json
       - data/train.csv
       - data/test.csv
     outs:
@@ -45,12 +46,36 @@ stages:
       - models/gb_model.joblib
       - data/predictions.csv
 
+  tune:
+    cmd: uv run python src/tune.py
+    deps:
+      - src/tune.py
+      - params.json
+      - data/train.csv
+    outs:
+      - models/tuned_params.json
+
+  train-tuned:
+    cmd: uv run python src/train.py --mode tuned --tuned-params-path models/tuned_params.json
+    deps:
+      - src/train.py
+      - params.json
+      - data/train.csv
+      - data/test.csv
+      - models/tuned_params.json
+    outs:
+      - models/ridge_model_tuned.joblib
+      - models/rf_model_tuned.joblib
+      - models/gb_model_tuned.joblib
+      - data/predictions_tuned.csv
+
   evaluate:
     cmd: uv run python src/evaluate.py
     deps:
       - src/evaluate.py
       - data/test.csv
       - data/predictions.csv
+      - data/predictions_tuned.csv
     metrics:
       - metrics/results.json:
           cache: false

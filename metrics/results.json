@@ -1,27 +1,73 @@
 {
-  "naive_lag1": {
-    "mae": 1.1494,
-    "rmse": 2.5968,
-    "r2": -0.1935
+  "baseline": {
+    "naive_lag1": {
+      "mae": 1.1494,
+      "rmse": 2.5968,
+      "r2": -0.1935
+    },
+    "naive_ma5": {
+      "mae": 1.0573,
+      "rmse": 2.1159,
+      "r2": 0.2076
+    },
+    "ridge_regression": {
+      "mae": 1.0772,
+      "rmse": 1.9733,
+      "r2": 0.3108
+    },
+    "random_forest": {
+      "mae": 1.0326,
+      "rmse": 1.9714,
+      "r2": 0.3121
+    },
+    "gradient_boosting": {
+      "mae": 1.0566,
+      "rmse": 2.0037,
+      "r2": 0.2894
+    }
   },
-  "naive_ma5": {
-    "mae": 1.0573,
-    "rmse": 2.1159,
-    "r2": 0.2076
+  "tuned": {
+    "naive_lag1": {
+      "mae": 1.1494,
+      "rmse": 2.5968,
+      "r2": -0.1935
+    },
+    "naive_ma5": {
+      "mae": 1.0573,
+      "rmse": 2.1159,
+      "r2": 0.2076
+    },
+    "ridge_regression": {
+      "mae": 1.0772,
+      "rmse": 1.9733,
+      "r2": 0.3108
+    },
+    "random_forest": {
+      "mae": 1.0181,
+      "rmse": 1.9741,
+      "r2": 0.3102
+    },
+    "gradient_boosting": {
+      "mae": 1.0459,
+      "rmse": 1.9858,
+      "r2": 0.302
+    }
   },
-  "ridge_regression": {
-    "mae": 1.0772,
-    "rmse": 1.9733,
-    "r2": 0.3108
-  },
-  "random_forest": {
-    "mae": 1.0306,
-    "rmse": 1.9777,
-    "r2": 0.3077
-  },
-  "gradient_boosting": {
-    "mae": 1.0566,
-    "rmse": 2.0037,
-    "r2": 0.2894
+  "tuned_minus_baseline": {
+    "ridge_regression": {
+      "mae_delta": 0.0,
+      "rmse_delta": 0.0,
+      "r2_delta": 0.0
+    },
+    "random_forest": {
+      "mae_delta": -0.0145,
+      "rmse_delta": 0.0027,
+      "r2_delta": -0.0019
+    },
+    "gradient_boosting": {
+      "mae_delta": -0.0107,
+      "rmse_delta": -0.0179,
+      "r2_delta": 0.0126
+    }
   }
 }

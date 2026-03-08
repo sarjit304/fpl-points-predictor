@@ -1,3 +1,7 @@
 /ridge_model.joblib
 /rf_model.joblib
 /gb_model.joblib
+/tuned_params.json
+/ridge_model_tuned.joblib
+/rf_model_tuned.joblib
+/gb_model_tuned.joblib
