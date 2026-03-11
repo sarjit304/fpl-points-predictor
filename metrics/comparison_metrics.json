@@ -40,14 +40,14 @@
       "r2": 0.2894
     },
     "tuned": {
-      "mae": 0.9195,
-      "rmse": 2.0569,
-      "r2": 0.2512
+      "mae": 0.9213,
+      "rmse": 2.0636,
+      "r2": 0.2462
     },
-    "mae_improvement": 0.1371,
-    "mae_improvement_pct": 12.98,
-    "rmse_improvement": -0.0532,
-    "r2_improvement": -0.0382,
+    "mae_improvement": 0.1353,
+    "mae_improvement_pct": 12.81,
+    "rmse_improvement": -0.0599,
+    "r2_improvement": -0.0432,
     "tuned_is_better": true
   }
 }
