@@ -3,7 +3,7 @@ name = "fpl-points-predictor"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "dvc-gs>=3.0.2",
     "ipykernel>=6.31.0",
