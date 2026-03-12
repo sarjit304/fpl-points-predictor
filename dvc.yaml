@@ -33,24 +33,55 @@ stages:
       - data/test.csv
       - data/train.csv
 
+  tune:
+    cmd: uv run python src/tune.py
+    deps:
+      - src/tune.py
+      - data/train.csv
+    params:
+      - features
+      - sample_weight
+      - cross_validation
+      - baseline.ridge.alpha
+      - tuning
+    outs:
+      - models/tuned_params.json
+
   train:
-    cmd: uv run python src/train.py
+    cmd: uv run python src/train.py --mode both
     deps:
       - src/train.py
       - data/train.csv
       - data/test.csv
+      - models/tuned_params.json
+    params:
+      - features
+      - baseline
+      - paths.train_data
+      - paths.test_data
     outs:
-      - models/ridge_model.joblib
-      - models/rf_model.joblib
-      - models/gb_model.joblib
-      - data/predictions.csv
+      - models/baseline/
+      - models/tuned/
+      - data/predictions_baseline.csv
+      - data/predictions_tuned.csv
 
   evaluate:
     cmd: uv run python src/evaluate.py
     deps:
       - src/evaluate.py
       - data/test.csv
-      - data/predictions.csv
+      - data/predictions_baseline.csv
+      - data/predictions_tuned.csv
+    params:
+      - features.target
+      - paths.test_data
+      - paths.metrics_dir
     metrics:
       - metrics/results.json:
+          cache: false
+      - metrics/baseline_metrics.json:
+          cache: false
+      - metrics/tuned_metrics.json:
+          cache: false
+      - metrics/comparison_metrics.json:
           cache: false

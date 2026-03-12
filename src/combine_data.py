@@ -1,6 +1,7 @@
 import pandas as pd
 import glob
 import os
+from tqdm import tqdm
 
 
 def build_combined_dataset(current_season_file, historical_folder, output_file):
@@ -26,7 +27,7 @@ def build_combined_dataset(current_season_file, historical_folder, output_file):
     ]
 
     # Load current season data
-    print("Loading current season data...")
+    print("📂 Loading current season data...")
     current_df = pd.read_csv(current_season_file)
     current_df['season'] = CURRENT_SEASON
 
@@ -35,24 +36,20 @@ def build_combined_dataset(current_season_file, historical_folder, output_file):
     print(f"Found {len(active_players)} active players in current season")
 
     # Load and filter historical data
-    historical_files = glob.glob(os.path.join(historical_folder, "*.csv"))
+    historical_files = sorted(glob.glob(os.path.join(historical_folder, "*.csv")))
     all_dfs = [current_df]
 
-    for file in sorted(historical_files):
+    for file in tqdm(historical_files, desc="⏳ Loading historical seasons", unit="season"):
         season = os.path.basename(file).replace('.csv', '')
-        print(f"Loading {season}...")
-
         hist_df = pd.read_csv(file)
         hist_df['season'] = season
 
         # Filter to active players only
         hist_df = hist_df[hist_df['name'].isin(active_players)]
-        print(f"  → {len(hist_df)} rows for active players")
-
         all_dfs.append(hist_df)
 
     # Combine all dataframes
-    print("\nCombining all seasons...")
+    print("\n🔗 Combining all seasons...")
     combined_df = pd.concat(all_dfs, ignore_index=True)
 
     # Ensure all final columns exist (fill missing with NaN)

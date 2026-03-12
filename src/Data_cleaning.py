@@ -2,21 +2,32 @@ import math
 import os
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
+
+print("="*60)
+print("Data Cleaning Pipeline")
+print("="*60)
 
 # Load raw data
+print("\n📂 Loading raw data...")
 df = pd.read_csv('data/raw/combined_all_seasons.csv')
+print(f"Loaded {len(df)} rows")
 
 # Remove duplicates based on player, season, and round
-df = df.drop_duplicates(subset=['element', 'season', 'round'])
+print("\n⏳ Cleaning data...")
+cleaning_steps = [
+    ("Removing duplicates", lambda d: d.drop_duplicates(subset=['element', 'season', 'round'])),
+    ("Converting kickoff_time", lambda d: d.assign(kickoff_time=pd.to_datetime(d['kickoff_time'], errors='coerce'))),
+    ("Converting was_home to int", lambda d: d.assign(was_home=d['was_home'].astype(int))),
+]
 
-# Convert kickoff_time to datetime
-df['kickoff_time'] = pd.to_datetime(df['kickoff_time'], errors='coerce')
-
-# Ensure was_home is integer (0/1)
-df['was_home'] = df['was_home'].astype(int)
+for step_name, step_func in tqdm(cleaning_steps, desc="  Cleaning steps", leave=True):
+    df = step_func(df)
 
 # Impute missing expected stats and add missingness flags
-for col in ['expected_goals', 'expected_assists', 'expected_goal_involvements', 'expected_goals_conceded']:
+print("\n⏳ Imputing missing values...")
+expected_cols = ['expected_goals', 'expected_assists', 'expected_goal_involvements', 'expected_goals_conceded']
+for col in tqdm(expected_cols, desc="  Expected stats", leave=True):
     if col in df.columns:
         df[f'{col}_missing'] = df[col].isnull().astype(int)
         df[col] = df[col].fillna(0)
@@ -36,5 +47,7 @@ df = df.reset_index(drop=True)
 os.makedirs("data/processed", exist_ok=True)
 
 # Save cleaned data
+print("\n💾 Saving cleaned data...")
 df.to_csv('data/processed/cleaned_all_seasons.csv', index=False)
-print("Cleaned data saved to data/processed/cleaned_all_seasons.csv")
+print(f"✅ Cleaned data saved to data/processed/cleaned_all_seasons.csv")
+print(f"   Total rows: {len(df)}")

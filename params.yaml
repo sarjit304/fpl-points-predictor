@@ -1,0 +1,95 @@
+# =============================================================================
+# FPL Points Predictor - Configuration Parameters
+# =============================================================================
+# This file contains all tunable parameters for the pipeline.
+# Modify these values and run `dvc repro` to re-run experiments.
+
+# -----------------------------------------------------------------------------
+# Feature Engineering
+# -----------------------------------------------------------------------------
+features:
+  lag_features:
+    - total_points_lag1
+    - expected_goal_involvements_lag1
+    - minutes_lag1
+  moving_average_features:
+    - total_points_ma5
+    - expected_goal_involvements_ma5
+    - ict_index_ma5
+    - bps_ma5
+  target: total_points
+
+# -----------------------------------------------------------------------------
+# Sample Weighting (Decay)
+# -----------------------------------------------------------------------------
+sample_weight:
+  decay_rate: 0.15
+  decay_rates_to_test: [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+
+# -----------------------------------------------------------------------------
+# Cross-Validation
+# -----------------------------------------------------------------------------
+cross_validation:
+  method: TimeSeriesSplit
+  n_splits: 5
+  scoring: neg_mean_absolute_error
+
+# -----------------------------------------------------------------------------
+# Baseline Model Parameters (original values before tuning)
+# -----------------------------------------------------------------------------
+baseline:
+  ridge:
+    alpha: 1.0
+  
+  random_forest:
+    n_estimators: 100
+    max_depth: 10
+    min_samples_split: 10
+    min_samples_leaf: 5
+    random_state: 42
+  
+  xgboost:
+    n_estimators: 100
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+  
+  use_log_transform: false
+
+# -----------------------------------------------------------------------------
+# Tuning Search Space
+# -----------------------------------------------------------------------------
+tuning:
+  ridge:
+    alpha: [0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0]
+  
+  random_forest:
+    n_estimators: [50, 100, 200]
+    max_depth: [5, 10, 15, 20]
+    min_samples_split: [5, 10, 20]
+    min_samples_leaf: [3, 5, 10]
+  
+  xgboost:
+    n_estimators: [50, 100, 200]
+    max_depth: [3, 6, 9]
+    learning_rate: [0.01, 0.05, 0.1, 0.2]
+    subsample: [0.7, 0.8, 0.9]
+    colsample_bytree: [0.7, 0.8, 0.9]
+
+# -----------------------------------------------------------------------------
+# Data Paths
+# -----------------------------------------------------------------------------
+paths:
+  raw_data: data/raw/combined_all_seasons.csv
+  cleaned_data: data/processed/cleaned_all_seasons.csv
+  features_data: data/processed/features_all_seasons.csv
+  train_data: data/train.csv
+  test_data: data/test.csv
+  tuned_params: models/tuned_params.json
+  baseline_model_dir: models/baseline
+  tuned_model_dir: models/tuned
+  baseline_predictions: data/predictions_baseline.csv
+  tuned_predictions: data/predictions_tuned.csv
+  metrics_dir: metrics

@@ -19,6 +19,7 @@ Data Leakage Prevention:
 import pandas as pd
 import numpy as np
 import os
+from tqdm import tqdm
 
 # Input dataset path (reads from feature-engineered data)
 INPUT_PATH = "data/processed/features_all_seasons.csv"
@@ -111,7 +112,9 @@ def temporal_split(df, current_season, cutoff_gw, season_order):
 
 if __name__ == "__main__":
     
+    print("="*60)
     print("Temporal Train/Test Split")
+    print("="*60)
     
     # Season ordering for timeline calculation
     season_order = {
@@ -120,46 +123,50 @@ if __name__ == "__main__":
     }
 
     # Load feature-engineered dataset
-    print("\nLoading feature-engineered dataset...")
+    print("\n📂 Loading feature-engineered dataset...")
     df = pd.read_csv(INPUT_PATH)
     print(f"Loaded {len(df)} rows")
 
-    # Temporal train/test split
-    print(f"\nPerforming temporal split (cutoff at GW{CUTOFF_GW})...")
+    # Processing steps with progress bar
+    print("\n⏳ Processing data...")
+    steps = ["Temporal split", "Adding recency weights", "Cleaning NaN rows", "Saving files"]
+    pbar = tqdm(steps, desc="  Processing", leave=True)
+    
+    # Step 1: Temporal train/test split
+    pbar.set_postfix_str("Temporal split")
     train_df, test_df, max_gw, cutoff_timeline = temporal_split(
         df, CURRENT_SEASON, CUTOFF_GW, season_order
     )
+    pbar.update(1)
 
-    # Add recency weights to training data only
-    print(f"\nAdding recency weights to training data (decay_rate={DECAY_RATE})...")
+    # Step 2: Add recency weights to training data only
+    pbar.set_postfix_str("Adding recency weights")
     train_df = add_recency_weights(train_df, DECAY_RATE, cutoff_timeline, season_order)
+    pbar.update(1)
 
-    # Drop rows with NaN in lag/rolling features
-    # (first few GWs per player don't have enough history)
+    # Step 3: Drop rows with NaN in lag/rolling features
+    pbar.set_postfix_str("Cleaning NaN rows")
     feature_cols = [c for c in train_df.columns if '_lag' in c or '_ma' in c]
     if feature_cols:
-        before_train = len(train_df)
-        before_test = len(test_df)
         train_df = train_df.dropna(subset=feature_cols)
         test_df = test_df.dropna(subset=feature_cols)
-        print(f"\nDropped rows with insufficient history:")
-        print(f"  Train: {before_train} → {len(train_df)} ({before_train - len(train_df)} dropped)")
-        print(f"  Test: {before_test} → {len(test_df)} ({before_test - len(test_df)} dropped)")
+    pbar.update(1)
 
-    # Create output directory if needed
+    # Step 4: Create output directory and save files
+    pbar.set_postfix_str("Saving files")
     os.makedirs("data", exist_ok=True)
-
-    # Save files
     train_df.to_csv(TRAIN_PATH, index=False)
     test_df.to_csv(TEST_PATH, index=False)
+    pbar.update(1)
+    pbar.close()
 
-    print("Split completed successfully")
-    print(f"\nTrain set: {len(train_df)} rows")
-    print(f"  Seasons: {sorted(train_df['season'].unique())}")
-    print(f"  {CURRENT_SEASON} gameweeks: 1 to {CUTOFF_GW}")
-    print(f"\nTest set: {len(test_df)} rows")
-    print(f"  Season: {CURRENT_SEASON}")
-    print(f"  Gameweeks: {CUTOFF_GW + 1} to {max_gw}")
-    print(f"\nFiles saved:")
-    print(f"  {TRAIN_PATH}")
-    print(f"  {TEST_PATH}")
+    print(f"\n✅ Split completed successfully")
+    print(f"\n📊 Train set: {len(train_df)} rows")
+    print(f"   Seasons: {sorted(train_df['season'].unique())}")
+    print(f"   {CURRENT_SEASON} gameweeks: 1 to {CUTOFF_GW}")
+    print(f"\n📊 Test set: {len(test_df)} rows")
+    print(f"   Season: {CURRENT_SEASON}")
+    print(f"   Gameweeks: {CUTOFF_GW + 1} to {max_gw}")
+    print(f"\n💾 Files saved:")
+    print(f"   {TRAIN_PATH}")
+    print(f"   {TEST_PATH}")

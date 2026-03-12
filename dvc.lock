@@ -9,8 +9,8 @@ stages:
       size: 14863283
     - path: src/train_test_split.py
       hash: md5
-      md5: 741fc571559b632e0962e065aee3629b
-      size: 5671
+      md5: 56b052fd24c15e873beec98c89f922b9
+      size: 5741
     outs:
     - path: data/test.csv
       hash: md5
@@ -29,8 +29,8 @@ stages:
       size: 9523437
     - path: src/Data_cleaning.py
       hash: md5
-      md5: 9fe18d2c67d3c7560499c659fd61aaa9
-      size: 1394
+      md5: 23a71805c4136a181cfefe1b16fa3318
+      size: 1958
     outs:
     - path: data/processed/cleaned_all_seasons.csv
       hash: md5
@@ -50,8 +50,8 @@ stages:
       nfiles: 5
     - path: src/combine_data.py
       hash: md5
-      md5: 2c22c2fb38b67164911b4290f3ee1e84
-      size: 2972
+      md5: ba2c13459c78f351512dfc67d2e6bbdb
+      size: 2961
     outs:
     - path: data/raw/combined_all_seasons.csv
       hash: md5
@@ -66,15 +66,15 @@ stages:
       size: 10342130
     - path: src/feature_engineering.py
       hash: md5
-      md5: fb4369d9133c93bb6e64267528e1f82a
-      size: 5017
+      md5: ba4907a0b854c3eac905545c0a6b7539
+      size: 5068
     outs:
     - path: data/processed/features_all_seasons.csv
       hash: md5
       md5: 6e704f1a2b25e54870d55bf99046a2f9
       size: 14863283
   train:
-    cmd: uv run python src/train.py
+    cmd: uv run python src/train.py --mode both
     deps:
     - path: data/test.csv
       hash: md5
@@ -84,44 +84,198 @@ stages:
       hash: md5
       md5: 138a8599993eb818c4576d054162aba4
       size: 12551253
+    - path: models/tuned_params.json
+      hash: md5
+      md5: 3ff2cad182a08b37aaae1df9ae80d5b4
+      size: 1298
     - path: src/train.py
       hash: md5
-      md5: e494d14a210e614552dc587c37bc20eb
-      size: 2796
+      md5: c5f711fafbeb05db53213dc1ffdd1b11
+      size: 9237
+    params:
+      params.yaml:
+        baseline:
+          ridge:
+            alpha: 1.0
+          random_forest:
+            n_estimators: 100
+            max_depth: 10
+            min_samples_split: 10
+            min_samples_leaf: 5
+            random_state: 42
+          xgboost:
+            n_estimators: 100
+            max_depth: 6
+            learning_rate: 0.1
+            subsample: 0.8
+            colsample_bytree: 0.8
+            random_state: 42
+          use_log_transform: false
+        features:
+          lag_features:
+          - total_points_lag1
+          - expected_goal_involvements_lag1
+          - minutes_lag1
+          moving_average_features:
+          - total_points_ma5
+          - expected_goal_involvements_ma5
+          - ict_index_ma5
+          - bps_ma5
+          target: total_points
+        paths.test_data: data/test.csv
+        paths.train_data: data/train.csv
     outs:
-    - path: data/predictions.csv
+    - path: data/predictions_baseline.csv
       hash: md5
-      md5: 8f65e15877ea52604769d90479379d6b
-      size: 1401700
-    - path: models/gb_model.joblib
+      md5: 1d2a739fa43289f2ef12f8ff3a667e50
+      size: 1401635
+    - path: data/predictions_tuned.csv
       hash: md5
-      md5: 829063dc5d1fb0e9310f6fe9201f31ea
-      size: 381612
-    - path: models/rf_model.joblib
+      md5: 2f95982dc664484bcca2603654fd26c1
+      size: 1405945
+    - path: models/baseline/
       hash: md5
-      md5: be60e79f02268ef8733c242a62429fc5
-      size: 5338897
-    - path: models/ridge_model.joblib
+      md5: d4d8c65b3a78708dfe4daf65e82bfa91.dir
+      size: 5721603
+      nfiles: 3
+    - path: models/tuned/
       hash: md5
-      md5: f1bce10983dc15d2dc0ecf9977b44642
-      size: 1009
+      md5: 9e34e63c563cbf041d9b0e08d5d3bc16.dir
+      size: 1016078
+      nfiles: 3
   evaluate:
     cmd: uv run python src/evaluate.py
     deps:
-    - path: data/predictions.csv
+    - path: data/predictions_baseline.csv
       hash: md5
-      md5: 8f65e15877ea52604769d90479379d6b
-      size: 1401700
+      md5: 1d2a739fa43289f2ef12f8ff3a667e50
+      size: 1401635
+    - path: data/predictions_tuned.csv
+      hash: md5
+      md5: 2f95982dc664484bcca2603654fd26c1
+      size: 1405945
     - path: data/test.csv
       hash: md5
       md5: 2f7f6a2ede6a64302024cb1689259bd2
       size: 3291545
     - path: src/evaluate.py
       hash: md5
-      md5: 46b99c618918b1a070c33cca583a68c4
-      size: 1529
+      md5: 67b210737e5ef246474f8a5f126285a2
+      size: 7255
+    params:
+      params.yaml:
+        features.target: total_points
+        paths.metrics_dir: metrics
+        paths.test_data: data/test.csv
     outs:
+    - path: metrics/baseline_metrics.json
+      hash: md5
+      md5: 35f3b6d0d743d29603b6a3f4a79d1b32
+      size: 413
+    - path: metrics/comparison_metrics.json
+      hash: md5
+      md5: 9080d548b59a6da803991ff4f56aac77
+      size: 1071
     - path: metrics/results.json
       hash: md5
       md5: 35f3b6d0d743d29603b6a3f4a79d1b32
       size: 413
+    - path: metrics/tuned_metrics.json
+      hash: md5
+      md5: e412566c1378a51ebff993a82f87449f
+      size: 413
+  tune:
+    cmd: uv run python src/tune.py
+    deps:
+    - path: data/train.csv
+      hash: md5
+      md5: 138a8599993eb818c4576d054162aba4
+      size: 12551253
+    - path: src/tune.py
+      hash: md5
+      md5: 23e5c93d3a6cfe2c579f9497d457453b
+      size: 17712
+    params:
+      params.yaml:
+        baseline.ridge.alpha: 1.0
+        cross_validation:
+          method: TimeSeriesSplit
+          n_splits: 5
+          scoring: neg_mean_absolute_error
+        features:
+          lag_features:
+          - total_points_lag1
+          - expected_goal_involvements_lag1
+          - minutes_lag1
+          moving_average_features:
+          - total_points_ma5
+          - expected_goal_involvements_ma5
+          - ict_index_ma5
+          - bps_ma5
+          target: total_points
+        sample_weight:
+          decay_rate: 0.15
+          decay_rates_to_test:
+          - 0.0
+          - 0.05
+          - 0.1
+          - 0.15
+          - 0.2
+          - 0.25
+          - 0.3
+        tuning:
+          ridge:
+            alpha:
+            - 0.01
+            - 0.1
+            - 0.5
+            - 1.0
+            - 5.0
+            - 10.0
+            - 50.0
+            - 100.0
+          random_forest:
+            n_estimators:
+            - 50
+            - 100
+            - 200
+            max_depth:
+            - 5
+            - 10
+            - 15
+            - 20
+            min_samples_split:
+            - 5
+            - 10
+            - 20
+            min_samples_leaf:
+            - 3
+            - 5
+            - 10
+          xgboost:
+            n_estimators:
+            - 50
+            - 100
+            - 200
+            max_depth:
+            - 3
+            - 6
+            - 9
+            learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.2
+            subsample:
+            - 0.7
+            - 0.8
+            - 0.9
+            colsample_bytree:
+            - 0.7
+            - 0.8
+            - 0.9
+    outs:
+    - path: models/tuned_params.json
+      hash: md5
+      md5: 3ff2cad182a08b37aaae1df9ae80d5b4
+      size: 1298
