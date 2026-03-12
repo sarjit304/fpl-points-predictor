@@ -27,6 +27,7 @@ import numpy as np
 import json
 import os
 import yaml
+from tqdm import tqdm
 from sklearn.linear_model import Ridge
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
@@ -117,7 +118,7 @@ def tune_decay_rate(train_df, cv):
     train_df = train_df.reset_index(drop=True)
     max_idx = len(train_df)
     
-    for decay in decay_rates:
+    for decay in tqdm(decay_rates, desc="Testing decay rates", leave=False):
         # Recalculate weights based on position in dataframe
         if decay == 0.0:
             weights = np.ones(len(train_df))
@@ -142,7 +143,7 @@ def tune_decay_rate(train_df, cv):
         mean_mae = np.mean(scores)
         std_mae = np.std(scores)
         results[decay] = {'mae': mean_mae, 'std': std_mae}
-        print(f"  decay={decay:.2f}: MAE={mean_mae:.4f} (+/- {std_mae:.4f})")
+        tqdm.write(f"  decay={decay:.2f}: MAE={mean_mae:.4f} (+/- {std_mae:.4f})")
     
     # Find best decay rate
     best_decay = min(results, key=lambda x: results[x]['mae'])
@@ -186,7 +187,8 @@ def tune_log_transform(train_df, cv):
     
     results = {}
     
-    for target_type, y_target in [('original', y), ('log_transformed', y_log)]:
+    for target_type, y_target in tqdm([('original', y), ('log_transformed', y_log)], 
+                                       desc="Testing log transform", leave=False):
         scores = []
         for train_idx, val_idx in cv.split(X):
             X_train_cv, X_val_cv = X.iloc[train_idx], X.iloc[val_idx]
@@ -209,7 +211,7 @@ def tune_log_transform(train_df, cv):
         mean_mae = np.mean(scores)
         std_mae = np.std(scores)
         results[target_type] = {'mae': mean_mae, 'std': std_mae}
-        print(f"  {target_type}: MAE={mean_mae:.4f} (+/- {std_mae:.4f})")
+        tqdm.write(f"  {target_type}: MAE={mean_mae:.4f} (+/- {std_mae:.4f})")
     
     # Determine if log transform helps
     use_log = results['log_transformed']['mae'] < results['original']['mae']
@@ -383,15 +385,24 @@ def main():
     }
     
     # ==========================================================================
-    # Run experiments
+    # Run experiments with progress bar
     # ==========================================================================
     
-    # Experiment 1: Decay rate
-    decay_results = tune_decay_rate(train_df, cv)
-    tuned_params['decay_experiment'] = decay_results
+    experiments = [
+        ("1/3 Decay Rate Tuning", lambda: tune_decay_rate(train_df, cv)),
+        ("2/3 Log Transform Test", lambda: tune_log_transform(train_df, cv)),
+    ]
     
-    # Experiment 2: Log transform
-    log_results = tune_log_transform(train_df, cv)
+    results_list = []
+    pbar = tqdm(experiments, desc="🔧 Running experiments", unit="exp")
+    for exp_name, exp_func in pbar:
+        pbar.set_postfix_str(exp_name)
+        results_list.append(exp_func())
+    
+    decay_results = results_list[0]
+    log_results = results_list[1]
+    
+    tuned_params['decay_experiment'] = decay_results
     tuned_params['log_transform_experiment'] = log_results
     
     # Experiment 3: Model hyperparameters
@@ -406,15 +417,29 @@ def main():
     else:
         y_tune = y
     
-    ridge_results = tune_ridge(X, y_tune, sample_weight, cv)
+    # Tune models with progress bar
+    model_tuning = [
+        ("Ridge", lambda: tune_ridge(X, y_tune, sample_weight, cv)),
+        ("Random Forest", lambda: tune_random_forest(X, y_tune, sample_weight, cv)),
+        ("XGBoost", lambda: tune_xgboost(X, y_tune, sample_weight, cv)),
+    ]
+    
+    model_results = {}
+    pbar = tqdm(model_tuning, desc="🔧 Tuning models", unit="model")
+    for model_name, tune_func in pbar:
+        pbar.set_postfix_str(model_name)
+        model_results[model_name] = tune_func()
+    
+    ridge_results = model_results["Ridge"]
+    rf_results = model_results["Random Forest"]
+    xgb_results = model_results["XGBoost"]
+    
     tuned_params['ridge'] = ridge_results['best_params']
     tuned_params['ridge_cv_mae'] = ridge_results['best_cv_mae']
     
-    rf_results = tune_random_forest(X, y_tune, sample_weight, cv)
     tuned_params['random_forest'] = rf_results['best_params']
     tuned_params['random_forest_cv_mae'] = rf_results['best_cv_mae']
     
-    xgb_results = tune_xgboost(X, y_tune, sample_weight, cv)
     tuned_params['xgboost'] = xgb_results['best_params']
     tuned_params['xgboost_cv_mae'] = xgb_results['best_cv_mae']
     

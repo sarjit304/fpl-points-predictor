@@ -10,6 +10,7 @@ import numpy as np
 import json
 import os
 import yaml
+from tqdm import tqdm
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # =============================================================================
@@ -160,46 +161,43 @@ if __name__ == "__main__":
     print("="*70)
     
     # Load test data
+    print("\n📂 Loading test data...")
     test_df = pd.read_csv(TEST_PATH)
     
     # Ensure metrics directory exists
     os.makedirs(METRICS_DIR, exist_ok=True)
     
-    # Evaluate baseline models
-    baseline_metrics = evaluate_predictions(
-        BASELINE_PREDICTIONS_PATH,
-        test_df,
-        "baseline"
-    )
+    # Evaluate models with progress bar
+    evaluation_tasks = [
+        ("Baseline models", BASELINE_PREDICTIONS_PATH, "baseline", BASELINE_METRICS_PATH),
+        ("Tuned models", TUNED_PREDICTIONS_PATH, "tuned", TUNED_METRICS_PATH),
+    ]
     
+    all_metrics = {}
+    pbar = tqdm(evaluation_tasks, desc="⏳ Evaluating models", unit="model")
+    for task_name, pred_path, model_type, metrics_path in pbar:
+        pbar.set_postfix_str(task_name)
+        metrics = evaluate_predictions(pred_path, test_df, model_type)
+        if metrics:
+            with open(metrics_path, 'w') as f:
+                json.dump(metrics, f, indent=2)
+            all_metrics[model_type] = metrics
+    
+    baseline_metrics = all_metrics.get("baseline")
+    tuned_metrics = all_metrics.get("tuned")
+    
+    # Also save to legacy results.json for backwards compatibility
     if baseline_metrics:
-        with open(BASELINE_METRICS_PATH, 'w') as f:
-            json.dump(baseline_metrics, f, indent=2)
-        print(f"\n  Metrics saved to {BASELINE_METRICS_PATH}")
-        
-        # Also save to legacy results.json for backwards compatibility
         with open(RESULTS_PATH, 'w') as f:
             json.dump(baseline_metrics, f, indent=2)
-    
-    # Evaluate tuned models
-    tuned_metrics = evaluate_predictions(
-        TUNED_PREDICTIONS_PATH,
-        test_df,
-        "tuned"
-    )
-    
-    if tuned_metrics:
-        with open(TUNED_METRICS_PATH, 'w') as f:
-            json.dump(tuned_metrics, f, indent=2)
-        print(f"\n  Metrics saved to {TUNED_METRICS_PATH}")
     
     # Compare if both exist
     if baseline_metrics and tuned_metrics:
         comparison = compare_baseline_vs_tuned(baseline_metrics, tuned_metrics)
         with open(COMPARISON_METRICS_PATH, 'w') as f:
             json.dump(comparison, f, indent=2)
-        print(f"\n  Comparison saved to {COMPARISON_METRICS_PATH}")
+        print(f"\n💾 Comparison saved to {COMPARISON_METRICS_PATH}")
     
     print("\n" + "="*70)
-    print("EVALUATION COMPLETE")
+    print("✅ EVALUATION COMPLETE")
     print("="*70)

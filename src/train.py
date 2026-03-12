@@ -20,6 +20,7 @@ import json
 import os
 import yaml
 import argparse
+from tqdm import tqdm
 from sklearn.linear_model import Ridge
 from sklearn.ensemble import RandomForestRegressor
 import xgboost as xgb
@@ -124,17 +125,25 @@ def train_and_predict(X_train, y_train, X_test, test_df, sample_weight,
     else:
         y_train_model = y_train
     
-    # Train models
-    print("  Training Ridge Regression...")
-    ridge_model = train_ridge(X_train, y_train_model, sample_weight, params.get('ridge'))
+    # Train models with progress bar
+    models_to_train = [
+        ("Ridge Regression", lambda: train_ridge(X_train, y_train_model, sample_weight, params.get('ridge'))),
+        ("Random Forest", lambda: train_random_forest(X_train, y_train_model, sample_weight, params.get('random_forest'))),
+        ("XGBoost", lambda: train_xgboost(X_train, y_train_model, sample_weight, params.get('xgboost'))),
+    ]
     
-    print("  Training Random Forest...")
-    rf_model = train_random_forest(X_train, y_train_model, sample_weight, params.get('random_forest'))
+    trained_models = {}
+    pbar = tqdm(models_to_train, desc="  🏋️ Training models", unit="model", leave=True)
+    for model_name, train_func in pbar:
+        pbar.set_postfix_str(model_name)
+        trained_models[model_name] = train_func()
     
-    print("  Training XGBoost...")
-    gb_model = train_xgboost(X_train, y_train_model, sample_weight, params.get('xgboost'))
+    ridge_model = trained_models["Ridge Regression"]
+    rf_model = trained_models["Random Forest"]
+    gb_model = trained_models["XGBoost"]
     
     # Save models
+    print("  💾 Saving models...")
     joblib.dump(ridge_model, f"{model_dir}/ridge_model.joblib")
     joblib.dump(rf_model, f"{model_dir}/rf_model.joblib")
     joblib.dump(gb_model, f"{model_dir}/gb_model.joblib")

@@ -926,6 +926,7 @@ dependencies = [
     { name = "requests" },
     { name = "scikit-learn" },
     { name = "seaborn" },
+    { name = "tqdm" },
     { name = "xgboost" },
 ]
 
@@ -946,6 +947,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.5" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "tqdm", specifier = ">=4.66.0" },
     { name = "xgboost", specifier = ">=2.1.4" },
 ]
 

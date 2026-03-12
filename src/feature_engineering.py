@@ -12,6 +12,7 @@ Data Leakage Prevention:
 import pandas as pd
 import numpy as np
 import os
+from tqdm import tqdm
 
 # Input/Output paths
 INPUT_PATH = "data/processed/cleaned_all_seasons.csv"
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     print("="*60)
 
     # Load cleaned dataset
-    print("\nLoading cleaned dataset...")
+    print("\n📂 Loading cleaned dataset...")
     df = pd.read_csv(INPUT_PATH)
     print(f"Loaded {len(df)} rows, {df['element'].nunique()} unique players")
 
@@ -128,20 +129,18 @@ if __name__ == "__main__":
     df = df.sort_values(['element', 'season', 'round'])
 
     # Add lag features (previous gameweek values)
-    print("\nAdding lag features (previous gameweek values)...")
+    print("\n⏳ Adding lag features (previous gameweek values)...")
     lag_columns = ['total_points', 'expected_goal_involvements', 'minutes']
-    df = add_lag_features(df, lag_columns, lag=1)
-    for col in lag_columns:
-        print(f"  + {col}_lag1")
+    for col in tqdm(lag_columns, desc="  Creating lag features", leave=True):
+        df = add_lag_features(df, [col], lag=1)
 
     # Add rolling averages (with optional time decay)
-    print(f"\nAdding {ROLLING_WINDOW}-game rolling averages...")
+    print(f"\n⏳ Adding {ROLLING_WINDOW}-game rolling averages...")
     if TIME_DECAY_RATE > 0:
         print(f"  Using time-weighted decay (rate={TIME_DECAY_RATE})")
     rolling_columns = ['total_points', 'expected_goal_involvements', 'ict_index', 'bps']
-    df = add_rolling_averages(df, rolling_columns, window=ROLLING_WINDOW, decay_rate=TIME_DECAY_RATE)
-    for col in rolling_columns:
-        print(f"  + {col}_ma{ROLLING_WINDOW}")
+    for col in tqdm(rolling_columns, desc="  Creating rolling averages", leave=True):
+        df = add_rolling_averages(df, [col], window=ROLLING_WINDOW, decay_rate=TIME_DECAY_RATE)
 
     # Create output directory if needed
     os.makedirs("data/processed", exist_ok=True)
